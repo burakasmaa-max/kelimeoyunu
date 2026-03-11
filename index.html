@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Kelime Bulmaca</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --purple:#7c3aed; --purple-light:#a855f7; --cell-bg:rgba(255,255,255,0.88);
+  --cell-filled:#6d28d9; --cell-hl:#c4b5fd; --gold:#f5c518;
+}
+body {
+  font-family:'Nunito',sans-serif;
+  background:linear-gradient(180deg,#1a6fd4 0%,#2f9ce8 30%,#5bbcf5 55%,#87d8f7 75%,#c5eef5 90%,#d9f5e8 100%);
+  min-height:100vh; display:flex; justify-content:center; overflow-x:hidden;
+}
+.game-container {
+  width:100%; max-width:430px; min-height:100vh; position:relative;
+  display:flex; flex-direction:column; align-items:center; overflow:hidden;
+}
+.bg-scene { position:absolute; inset:0; pointer-events:none; z-index:0; }
+.cloud { position:absolute; background:rgba(255,255,255,.65); border-radius:50px; filter:blur(2px); }
+.cloud::before,.cloud::after { content:''; position:absolute; background:inherit; border-radius:inherit; }
+.c1{width:120px;height:36px;top:16%;left:-15%;animation:cmove 18s linear infinite;}
+.c1::before{width:70px;height:48px;top:-18px;left:20px;}
+.c1::after{width:50px;height:32px;top:-8px;left:60px;}
+.c2{width:90px;height:26px;top:26%;right:-5%;animation:cmove2 23s linear infinite;opacity:.6;}
+.c2::before{width:50px;height:38px;top:-14px;left:15px;}
+.c3{width:60px;height:20px;top:21%;left:55%;animation:cmove 28s linear infinite reverse;opacity:.45;}
+@keyframes cmove{from{transform:translateX(-220px)}to{transform:translateX(520px)}}
+@keyframes cmove2{from{transform:translateX(320px)}to{transform:translateX(-420px)}}
+.buildings{position:absolute;bottom:0;left:0;right:0;height:42%;
+  background:radial-gradient(ellipse 300px 180px at 28% 100%,rgba(30,80,50,.55) 0%,transparent 70%),
+             radial-gradient(ellipse 200px 140px at 72% 100%,rgba(30,80,50,.45) 0%,transparent 60%);}
+.spire{position:absolute;bottom:28%;left:50%;transform:translateX(-50%);
+  width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;
+  border-bottom:85px solid rgba(75,45,130,.55);filter:drop-shadow(0 0 8px rgba(100,60,200,.4));}
+.castle{position:absolute;bottom:20%;right:14%;width:78px;height:58px;
+  background:rgba(130,90,170,.38);border-radius:4px 4px 0 0;}
+.castle::before{content:'';position:absolute;top:-14px;left:0;right:0;height:14px;
+  background:repeating-linear-gradient(90deg,rgba(130,90,170,.38) 0,rgba(130,90,170,.38) 12px,transparent 12px,transparent 20px);}
+.top-bar{position:relative;z-index:10;width:100%;display:flex;justify-content:space-between;
+  align-items:center;padding:14px 16px 8px;}
+.gem-counter{background:linear-gradient(135deg,#1e40af,#3b82f6);border:2px solid rgba(255,255,255,.4);
+  border-radius:22px;padding:6px 14px 6px 10px;display:flex;align-items:center;gap:6px;
+  box-shadow:0 3px 10px rgba(0,0,0,.2);}
+.gem-count{color:white;font-weight:900;font-size:16px;}
+.chapter-badge{background:linear-gradient(135deg,#2563eb,#1d4ed8);border:2px solid rgba(255,255,255,.3);
+  border-radius:22px;padding:6px 18px;color:white;font-weight:900;font-size:15px;
+  box-shadow:0 3px 10px rgba(0,0,0,.2);}
+.settings-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);
+  border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;color:white;transition:transform .2s;}
+.settings-btn:hover{transform:rotate(45deg);}
+.clue-card{position:relative;z-index:10;background:rgba(255,255,255,.93);border-radius:16px;
+  padding:13px 18px;margin:6px 16px;width:calc(100% - 32px);text-align:center;
+  box-shadow:0 4px 16px rgba(0,0,0,.12);min-height:58px;display:flex;align-items:center;
+  justify-content:center;gap:10px;}
+.clue-text{font-family:'Baloo 2',cursive;font-size:17px;font-weight:700;color:#1e293b;line-height:1.35;flex:1;}
+.clue-icon{font-size:22px;flex-shrink:0;}
+.grid-area{position:relative;z-index:10;width:100%;display:flex;justify-content:center;
+  align-items:center;padding:8px 0;}
+.crossword-grid{position:relative;}
+.grid-row{display:flex;}
+.grid-cell{
+  margin:2px;background:var(--cell-bg);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Baloo 2',cursive;font-weight:800;color:transparent;
+  box-shadow:0 3px 0 rgba(0,0,0,.12);
+  transition:background .25s,color .25s,transform .25s;
+  position:relative;
+}
+.grid-cell.empty{background:transparent;box-shadow:none;}
+.grid-cell.filled{background:var(--cell-filled);color:white;box-shadow:0 3px 0 rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.2);}
+.grid-cell.highlighted{background:var(--cell-hl);box-shadow:0 3px 0 rgba(100,50,200,.3),0 0 0 2px var(--purple);animation:pcell .8s ease-in-out infinite alternate;}
+@keyframes pcell{from{transform:scale(1)}to{transform:scale(1.05)}}
+.grid-cell.popin{animation:popin .4s cubic-bezier(.34,1.56,.64,1) forwards;}
+@keyframes popin{0%{transform:scale(.4);opacity:.4}100%{transform:scale(1);opacity:1}}
+.gems-sidebar{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:7px;z-index:10;}
+.sidebar-gem{width:26px;height:26px;
+  background:linear-gradient(135deg,#34d399,#10b981);
+  clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%);
+  opacity:.3;transition:opacity .4s,transform .4s;}
+.sidebar-gem.earned{opacity:1;transform:scale(1.12);}
+.current-word{position:relative;z-index:10;min-height:44px;
+  display:flex;align-items:center;justify-content:center;margin:2px 0;}
+.word-badge{background:var(--purple);color:white;font-family:'Baloo 2',cursive;
+  font-weight:800;font-size:20px;padding:8px 28px;border-radius:30px;
+  box-shadow:0 4px 16px rgba(109,40,217,.5);letter-spacing:3px;
+  opacity:0;transform:translateY(8px);transition:all .2s;}
+.word-badge.show{opacity:1;transform:translateY(0);}
+.circle-wrap{position:relative;z-index:10;width:230px;height:230px;margin:6px auto;flex-shrink:0;}
+.circle-bg{position:absolute;inset:0;background:rgba(255,255,255,.72);border-radius:50%;
+  box-shadow:0 8px 32px rgba(0,0,0,.15),inset 0 2px 8px rgba(255,255,255,.8);backdrop-filter:blur(4px);}
+.shuffle-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.6);
+  border:2px solid rgba(200,180,255,.5);font-size:22px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .3s,background .2s;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+.shuffle-btn:active{transform:translate(-50%,-50%) rotate(180deg);}
+.letter-btn{position:absolute;width:50px;height:50px;border-radius:50%;background:white;
+  border:3px solid rgba(200,180,255,.4);font-family:'Baloo 2',cursive;font-weight:800;font-size:21px;
+  color:#1e293b;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transform:translate(-50%,-50%);transition:all .15s;
+  box-shadow:0 4px 0 rgba(0,0,0,.1),0 2px 8px rgba(0,0,0,.08);
+  user-select:none;-webkit-user-select:none;z-index:4;}
+.letter-btn:hover{transform:translate(-50%,-50%) scale(1.1);background:#f3e8ff;border-color:var(--purple-light);}
+.letter-btn.selected{background:var(--purple);color:white;border-color:var(--purple);
+  transform:translate(-50%,-50%) scale(1.15);
+  box-shadow:0 4px 0 rgba(80,20,180,.4),0 0 12px rgba(168,85,247,.5);}
+.circle-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;}
+.draw-line{stroke:var(--purple);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;fill:none;opacity:.7;}
+.bottom-bar{position:relative;z-index:10;width:100%;
+  display:flex;justify-content:space-between;align-items:center;padding:8px 20px 20px;}
+.skip-btn{width:52px;height:52px;border-radius:50%;background:rgba(30,64,175,.6);
+  border:2px solid rgba(255,255,255,.3);color:white;font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 10px rgba(0,0,0,.2);transition:transform .15s;}
+.skip-btn:hover{transform:scale(1.08);}
+.hint-btn{background:rgba(30,64,175,.6);border:2px solid rgba(255,255,255,.3);border-radius:26px;
+  color:white;font-weight:800;font-size:14px;padding:10px 18px;cursor:pointer;
+  display:flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(0,0,0,.2);transition:transform .15s;}
+.hint-btn:hover{transform:scale(1.05);}
+.feedback{position:fixed;top:35%;left:50%;transform:translateX(-50%) scale(0);z-index:100;
+  background:var(--purple);color:white;font-family:'Baloo 2',cursive;font-weight:800;font-size:26px;
+  padding:12px 34px;border-radius:50px;box-shadow:0 8px 32px rgba(109,40,217,.5);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;letter-spacing:2px;
+  pointer-events:none;white-space:nowrap;}
+.feedback.show{transform:translateX(-50%) scale(1);opacity:1;}
+.feedback.hide{transform:translateX(-50%) scale(.7) translateY(-20px);opacity:0;}
+.level-complete{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s;}
+.level-complete.show{opacity:1;pointer-events:all;}
+.level-card{background:white;border-radius:24px;padding:40px 32px;text-align:center;
+  max-width:320px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);
+  transform:scale(.8);transition:transform .4s cubic-bezier(.34,1.56,.64,1);}
+.level-complete.show .level-card{transform:scale(1);}
+.level-title{font-family:'Baloo 2',cursive;font-size:32px;font-weight:800;color:var(--purple);}
+.level-stars{font-size:40px;margin:12px 0;}
+.level-score{font-size:16px;color:#64748b;margin-bottom:20px;}
+.next-btn{background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;border:none;
+  font-family:'Baloo 2',cursive;font-weight:800;font-size:18px;padding:14px 40px;
+  border-radius:50px;cursor:pointer;box-shadow:0 6px 20px rgba(109,40,217,.4);transition:transform .15s;}
+.next-btn:hover{transform:scale(1.05);}
+.confetti-container{position:fixed;inset:0;pointer-events:none;z-index:150;overflow:hidden;}
+.confetti-piece{position:absolute;border-radius:2px;animation:fall linear forwards;}
+@keyframes fall{from{transform:translateY(-20px) rotate(0deg);opacity:1}to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+.sparkle{position:fixed;pointer-events:none;z-index:20;font-size:18px;font-weight:900;
+  color:var(--gold);animation:spanim .9s ease-out forwards;}
+@keyframes spanim{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-55px) scale(.7)}}
+</style>
+</head>
+<body>
+<div class="game-container">
+  <div class="bg-scene">
+    <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+    <div class="buildings"></div><div class="spire"></div><div class="castle"></div>
+  </div>
+  <div class="top-bar">
+    <div class="gem-counter">💎 <span class="gem-count" id="gemCount">151</span></div>
+    <div class="chapter-badge" id="chapterBadge">Bölüm 1</div>
+    <button class="settings-btn" onclick="showFeedback('⚙ Ayarlar yakında!','#64748b')">⚙</button>
+  </div>
+  <div class="clue-card">
+    <span class="clue-text" id="clueText">...</span>
+    <span class="clue-icon" id="clueIcon">🔍</span>
+  </div>
+  <div class="grid-area">
+    <div id="crosswordGrid" class="crossword-grid"></div>
+    <div class="gems-sidebar" id="gemsSidebar"></div>
+  </div>
+  <div class="current-word">
+    <div class="word-badge" id="wordBadge"></div>
+  </div>
+  <div class="circle-wrap" id="circleWrap">
+    <div class="circle-bg"></div>
+    <svg class="circle-svg" id="circleSvg" viewBox="0 0 230 230"></svg>
+    <button class="shuffle-btn" onclick="shuffleLetters()" title="Karıştır">🔀</button>
+  </div>
+  <div class="bottom-bar">
+    <button class="skip-btn" onclick="skipWord()" title="Geç">⏭</button>
+    <div style="flex:1"></div>
+    <button class="hint-btn" onclick="useHint()">💡 <span id="hintCount">100</span></button>
+  </div>
+</div>
+<div class="feedback" id="feedback"></div>
+<div class="confetti-container" id="confettiContainer"></div>
+<div class="level-complete" id="levelComplete">
+  <div class="level-card">
+    <div class="level-title">🎉 Tebrikler!</div>
+    <div class="level-stars" id="levelStars">⭐⭐⭐</div>
+    <div class="level-score" id="levelScore"></div>
+    <button class="next-btn" onclick="nextLevel()">Sonraki Bölüm →</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  LEVEL DATA (Tam 50 Bölüm, Benzersiz ve Eğitim Odaklı)
+// ═══════════════════════════════════════════════════════════
+const LEVELS = [
+  { chapter: 1, words: [
+    { word:"ATMOSFER", clue:"Dünya'yı saran hava tabakası", icon:"☁️", row:0, col:0, dir:"H" },
+    { word:"AKIL", clue:"Düşünme ve anlama yeteneği", icon:"🧠", row:0, col:0, dir:"V" },
+    { word:"BİTKİ", clue:"Toprağa kökleriyle tutunan canlı", icon:"🌿", row:3, col:2, dir:"H" },
+    { word:"COĞRAFYA", clue:"Yeryüzünü inceleyen bilim dalı", icon:"🌍", row:6, col:2, dir:"H" },
+    { word:"ÇEVRE", clue:"Canlıların içinde yaşadığı ortam", icon:"♻️", row:9, col:2, dir:"H" } ] },
+  { chapter: 2, words: [
+    { word:"DÜNYA", clue:"Üzerinde yaşadığımız gezegen", icon:"🌍", row:0, col:0, dir:"H" },
+    { word:"DENEY", clue:"Bilimsel gerçeği kanıtlama işlemi", icon:"🧪", row:0, col:0, dir:"V" },
+    { word:"EKVATOR", clue:"Dünya'yı ortadan bölen hayali çizgi", icon:"🌐", row:3, col:2, dir:"H" },
+    { word:"FOSİL", clue:"Milyonlarca yıllık canlı kalıntısı", icon:"🦴", row:6, col:2, dir:"H" },
+    { word:"GEZEGEN", clue:"Yıldız etrafında dönen gök cismi", icon:"🪐", row:9, col:2, dir:"H" } ] },
+  { chapter: 3, words: [
+    { word:"HARİTA", clue:"Yeryüzünün kuşbakışı çizimi", icon:"🗺️", row:0, col:0, dir:"H" },
+    { word:"HÜCRE", clue:"Canlının en küçük yapı taşı", icon:"🔬", row:0, col:0, dir:"V" },
+    { word:"IŞIK", clue:"Görmemizi sağlayan enerji", icon:"💡", row:3, col:2, dir:"H" },
+    { word:"İKLİM", clue:"Bir bölgedeki genel hava durumu", icon:"☀️", row:6, col:2, dir:"H" },
+    { word:"KİTAP", clue:"Okunmak için yazılmış basılı eser", icon:"📚", row:9, col:2, dir:"H" } ] },
+  { chapter: 4, words: [
+    { word:"LİMAN", clue:"Gemilerin yanaştığı kıyı alanı", icon:"⚓", row:0, col:0, dir:"H" },
+    { word:"LİDER", clue:"Topluluğa yön veren önder kişi", icon:"👑", row:0, col:0, dir:"V" },
+    { word:"MADEN", clue:"Yer altından çıkarılan değerli mineral", icon:"⛏️", row:3, col:2, dir:"H" },
+    { word:"NEHİR", clue:"Denize dökülen büyük akarsu", icon:"🏞️", row:6, col:2, dir:"H" },
+    { word:"OKYANUS", clue:"Kıtaları ayıran büyük su kütlesi", icon:"🌊", row:9, col:2, dir:"H" } ] },
+  { chapter: 5, words: [
+    { word:"ÖLÇÜ", clue:"Bir büyüklüğü ifade eden birim", icon:"📏", row:0, col:0, dir:"H" },
+    { word:"ÖYKÜ", clue:"Gerçek veya kurgusal kısa hikaye", icon:"📖", row:0, col:0, dir:"V" },
+    { word:"PUSULA", clue:"Kuzeyi gösteren yön bulma aracı", icon:"🧭", row:3, col:2, dir:"H" },
+    { word:"ROKET", clue:"Uzaya fırlatılan motorlu araç", icon:"🚀", row:6, col:2, dir:"H" },
+    { word:"SANAT", clue:"Duyguları estetikle ifade etme", icon:"🎨", row:9, col:2, dir:"H" } ] },
+  { chapter: 6, words: [
+    { word:"ŞİİR", clue:"Dizeler halinde yazılan edebi eser", icon:"✍️", row:0, col:0, dir:"H" },
+    { word:"ŞEHİR", clue:"Nüfusun yoğun olduğu büyük yerleşim", icon:"🏙️", row:0, col:0, dir:"V" },
+    { word:"TARİH", clue:"Geçmiş olayları inceleyen bilim", icon:"⏳", row:3, col:2, dir:"H" },
+    { word:"UZAY", clue:"Gök cisimlerinin bulunduğu sonsuzluk", icon:"🌌", row:6, col:2, dir:"H" },
+    { word:"ÜRETİM", clue:"Tüketilmek için mal veya hizmet yapma", icon:"🏭", row:9, col:2, dir:"H" } ] },
+  { chapter: 7, words: [
+    { word:"VATAN", clue:"Bir milletin yaşadığı toprak parçası", icon:"🇹🇷", row:0, col:0, dir:"H" },
+    { word:"VADİ", clue:"İki dağ arasındaki çukur alan", icon:"⛰️", row:0, col:0, dir:"V" },
+    { word:"YILDIZ", clue:"Geceleri gökyüzünde parlayan cisim", icon:"⭐", row:3, col:2, dir:"H" },
+    { word:"ZAMAN", clue:"Olayların içinde geçtiği süre", icon:"⏱️", row:6, col:2, dir:"H" },
+    { word:"ATOM", clue:"Maddenin en küçük temel taşı", icon:"⚛️", row:9, col:2, dir:"H" } ] },
+  { chapter: 8, words: [
+    { word:"BİLİM", clue:"Deney ve gözleme dayalı bilgi sistemi", icon:"🔬", row:0, col:0, dir:"H" },
+    { word:"BEYİN", clue:"Sinir sistemimizin yönetim merkezi", icon:"🧠", row:0, col:0, dir:"V" },
+    { word:"CÜMLE", clue:"Anlamlı kelimeler dizisi, tümce", icon:"📝", row:3, col:2, dir:"H" },
+    { word:"ÇEKİRDEK", clue:"Hücreyi yöneten ana merkez", icon:"🧬", row:6, col:2, dir:"H" },
+    { word:"DESTAN", clue:"Kahramanlıkları anlatan efsanevi şiir", icon:"📜", row:9, col:2, dir:"H" } ] },
+  { chapter: 9, words: [
+    { word:"ENERJİ", clue:"İş yapabilme yeteneği veya gücü", icon:"⚡", row:0, col:0, dir:"H" },
+    { word:"EVREN", clue:"Var olan her şeyin bütünü, kainat", icon:"🌌", row:0, col:0, dir:"V" },
+    { word:"FAYDA", clue:"Bir şeyden elde edilen yarar", icon:"📈", row:3, col:2, dir:"H" },
+    { word:"GALAKSİ", clue:"Milyonlarca yıldızın oluşturduğu sistem", icon:"✨", row:6, col:2, dir:"H" },
+    { word:"HAYAT", clue:"Canlıların doğumdan ölüme kadar süreci", icon:"🌱", row:9, col:2, dir:"H" } ] },
+  { chapter: 10, words: [
+    { word:"IRMAK", clue:"Nehir, büyük akarsu", icon:"🏞️", row:0, col:0, dir:"H" },
+    { word:"IŞIN", clue:"Bir kaynaktan çıkan ışık çizgisi", icon:"☀️", row:0, col:0, dir:"V" },
+    { word:"İCAT", clue:"Daha önce olmayan bir şeyi bulma", icon:"💡", row:3, col:2, dir:"H" },
+    { word:"KITA", clue:"Dünya üzerindeki dev kara parçası", icon:"🌍", row:6, col:2, dir:"H" },
+    { word:"MANTIK", clue:"Doğru ve tutarlı düşünme sanatı", icon:"🤔", row:9, col:2, dir:"H" } ] },
+  { chapter: 11, words: [
+    { word:"MÜZE", clue:"Tarihi eserlerin sergilendiği bina", icon:"🏛️", row:0, col:0, dir:"H" },
+    { word:"MİMAR", clue:"Binaların planını çizen kişi", icon:"📐", row:0, col:0, dir:"V" },
+    { word:"NESİL", clue:"Aynı çağda yaşayan kuşak", icon:"👨‍👩‍👧", row:3, col:2, dir:"H" },
+    { word:"ORMAN", clue:"Ağaçlarla kaplı geniş alan", icon:"🌲", row:6, col:2, dir:"H" },
+    { word:"ÖZET", clue:"Bir konunun kısaca anlatılması", icon:"📋", row:9, col:2, dir:"H" } ] },
+  { chapter: 12, words: [
+    { word:"PATENT", clue:"Bir buluşun kullanım hakkı belgesi", icon:"📄", row:0, col:0, dir:"H" },
+    { word:"PİRAMİT", clue:"Mısır'daki devasa üçgen yapılar", icon:"🏜️", row:0, col:0, dir:"V" },
+    { word:"RESSAM", clue:"Tablo ve resim yapan sanatçı", icon:"🎨", row:3, col:2, dir:"H" },
+    { word:"SÖZLÜK", clue:"Kelimelerin anlamlarını içeren kitap", icon:"📖", row:6, col:2, dir:"H" },
+    { word:"ŞİFRE", clue:"Gizli mesajlaşma veya güvenlik parolası", icon:"🔐", row:9, col:2, dir:"H" } ] },
+  { chapter: 13, words: [
+    { word:"TOPLUM", clue:"Bir arada yaşayan insanlar bütünü", icon:"👥", row:0, col:0, dir:"H" },
+    { word:"TEOREM", clue:"İspatlanabilen bilimsel kural", icon:"📐", row:0, col:0, dir:"V" },
+    { word:"UFUK", clue:"Yer ile göğün birleştiği hayali çizgi", icon:"🌅", row:3, col:2, dir:"H" },
+    { word:"ÜLKE", clue:"Devletin egemen olduğu sınırları belli toprak", icon:"🗺️", row:6, col:2, dir:"H" },
+    { word:"VERİ", clue:"İşlenmek üzere toplanan bilgi", icon:"📊", row:9, col:2, dir:"H" } ] },
+  { chapter: 14, words: [
+    { word:"YAZAR", clue:"Kitap, makale kaleme alan kişi", icon:"✍️", row:0, col:0, dir:"H" },
+    { word:"YAPRAK", clue:"Bitkinin solunum yapan yeşil bölümü", icon:"🍂", row:0, col:0, dir:"V" },
+    { word:"ZEKA", clue:"Kavrama ve sorun çözme yeteneği", icon:"🧠", row:3, col:2, dir:"H" },
+    { word:"ANADOLU", clue:"Türkiye'nin Asya kıtasındaki büyük kısmı", icon:"🇹🇷", row:6, col:2, dir:"H" },
+    { word:"BARIŞ", clue:"Savaşın olmaması, uzlaşma durumu", icon:"🕊️", row:9, col:2, dir:"H" } ] },
+  { chapter: 15, words: [
+    { word:"CİHAZ", clue:"Belirli bir işi yapan alet veya makine", icon:"📱", row:0, col:0, dir:"H" },
+    { word:"CESUR", clue:"Korkusuz, yürekli kişi", icon:"🦁", row:0, col:0, dir:"V" },
+    { word:"ÇÖZÜM", clue:"Bir sorunu ortadan kaldıran yol", icon:"✅", row:3, col:2, dir:"H" },
+    { word:"DOĞA", clue:"İnsan eli değmemiş çevre, tabiat", icon:"🌿", row:6, col:2, dir:"H" },
+    { word:"EDEBİYAT", clue:"Söz ve yazı sanatı", icon:"📚", row:9, col:2, dir:"H" } ] },
+  { chapter: 16, words: [
+    { word:"FİLOZOF", clue:"Felsefe ile uğraşan düşünür", icon:"🤔", row:0, col:0, dir:"H" },
+    { word:"FİZİK", clue:"Madde ve enerjiyi inceleyen bilim", icon:"⚛️", row:0, col:0, dir:"V" },
+    { word:"GÜNEŞ", clue:"Dünyamızı ısıtan ve aydınlatan yıldız", icon:"☀️", row:3, col:2, dir:"H" },
+    { word:"HUKUK", clue:"Toplumu düzenleyen yasal kurallar", icon:"⚖️", row:6, col:2, dir:"H" },
+    { word:"İNSAN", clue:"Düşünebilen ve konuşabilen canlı", icon:"👤", row:9, col:2, dir:"H" } ] },
+  { chapter: 17, words: [
+    { word:"KÜLTÜR", clue:"Bir toplumun maddi/manevi değerleri", icon:"🎭", row:0, col:0, dir:"H" },
+    { word:"KANUN", clue:"Devletin koyduğu yasa, kural", icon:"📜", row:0, col:0, dir:"V" },
+    { word:"LİSAN", clue:"İnsanların anlaştığı dil", icon:"🗣️", row:3, col:2, dir:"H" },
+    { word:"MİRAS", clue:"Geçmişten geleceğe bırakılan değer", icon:"🏺", row:6, col:2, dir:"H" },
+    { word:"NÜFUS", clue:"Bir sınır içindeki insan sayısı", icon:"👥", row:9, col:2, dir:"H" } ] },
+  { chapter: 18, words: [
+    { word:"OKSİJEN", clue:"Nefes almamızı sağlayan renksiz gaz", icon:"💨", row:0, col:0, dir:"H" },
+    { word:"ORGAN", clue:"Vücutta belirli bir görevi olan bölüm", icon:"🫀", row:0, col:0, dir:"V" },
+    { word:"ÖRNEK", clue:"Benzeri yapılabilecek model", icon:"📋", row:3, col:2, dir:"H" },
+    { word:"PROJE", clue:"Planlanmış, tasarlanmış çalışma", icon:"🏗️", row:6, col:2, dir:"H" },
+    { word:"ROMAN", clue:"Karakterleri ayrıntılı anlatan uzun kitap", icon:"📕", row:9, col:2, dir:"H" } ] },
+  { chapter: 19, words: [
+    { word:"SİSTEM", clue:"Düzenli ve birbirine bağlı parçalar", icon:"⚙️", row:0, col:0, dir:"H" },
+    { word:"SAYI", clue:"Miktarı belirtmek için kullanılan rakam", icon:"🔢", row:0, col:0, dir:"V" },
+    { word:"TABLO", clue:"Çerçeveli resim veya veri listesi", icon:"🖼️", row:3, col:2, dir:"H" },
+    { word:"UZMAN", clue:"Bir konuda derin bilgisi olan", icon:"🎓", row:6, col:2, dir:"H" },
+    { word:"ÜNVAN", clue:"Kişinin mesleğini gösteren isim eki", icon:"🏷️", row:9, col:2, dir:"H" } ] },
+  { chapter: 20, words: [
+    { word:"VİCDAN", clue:"İyiyi kötüyü ayırt eden iç ses", icon:"❤️", row:0, col:0, dir:"H" },
+    { word:"VAKIF", clue:"Gönüllü yardımlaşma kurumu", icon:"🤝", row:0, col:0, dir:"V" },
+    { word:"YÖN", clue:"Kuzey, güney, doğu, batı kavramı", icon:"🧭", row:3, col:2, dir:"H" },
+    { word:"ZİRVE", clue:"Bir dağın veya başarının en tepe noktası", icon:"🏔️", row:6, col:2, dir:"H" },
+    { word:"ADALET", clue:"Hak ve hukuka uygunluk, doğruluk", icon:"⚖️", row:9, col:2, dir:"H" } ] },
+  { chapter: 21, words: [
+    { word:"BAŞKENT", clue:"Devletin yönetildiği merkez şehir", icon:"🏛️", row:0, col:0, dir:"H" },
+    { word:"BULUŞ", clue:"Daha önce bilinmeyen bir şeyin icadı", icon:"💡", row:0, col:0, dir:"V" },
+    { word:"CEVAP", clue:"Bir soruya verilen karşılık", icon:"💬", row:3, col:2, dir:"H" },
+    { word:"ÇİZGİ", clue:"İki noktayı birleştiren doğru", icon:"➖", row:6, col:2, dir:"H" },
+    { word:"DEPREM", clue:"Fay kırılmasıyla oluşan yer sarsıntısı", icon:"🏚️", row:9, col:2, dir:"H" } ] },
+  { chapter: 22, words: [
+    { word:"EVRİM", clue:"Canlıların zaman içindeki değişimi", icon:"🧬", row:0, col:0, dir:"H" },
+    { word:"ESER", clue:"Sanatçı tarafından yaratılan ürün", icon:"🎨", row:0, col:0, dir:"V" },
+    { word:"FİKİR", clue:"Akla gelen düşünce, görüş", icon:"💡", row:3, col:2, dir:"H" },
+    { word:"GÖREV", clue:"Yapılması gereken sorumluluk", icon:"✅", row:6, col:2, dir:"H" },
+    { word:"HESAP", clue:"Matematiksel işlem veya ödeme", icon:"🧮", row:9, col:2, dir:"H" } ] },
+  { chapter: 23, words: [
+    { word:"İFADE", clue:"Düşünceyi söz veya yazıyla anlatma", icon:"🗣️", row:0, col:0, dir:"H" },
+    { word:"İSİM", clue:"Canlı ve cansız varlıkların adı", icon:"🏷️", row:0, col:0, dir:"V" },
+    { word:"KURAL", clue:"Uyulması gereken ilke veya yasa", icon:"📏", row:3, col:2, dir:"H" },
+    { word:"LİMİT", clue:"Bir şeyin ulaşabileceği son sınır", icon:"🛑", row:6, col:2, dir:"H" },
+    { word:"MİLLİ", clue:"Bir millete ait olan, ulusal", icon:"🇹🇷", row:9, col:2, dir:"H" } ] },
+  { chapter: 24, words: [
+    { word:"NOTA", clue:"Müzik seslerini gösteren işaret", icon:"🎵", row:0, col:0, dir:"H" },
+    { word:"NORM", clue:"Toplumda kabul gören kural veya standart", icon:"📋", row:0, col:0, dir:"V" },
+    { word:"OKUL", clue:"Eğitim ve öğretim verilen kurum", icon:"🏫", row:3, col:2, dir:"H" },
+    { word:"ÖDEV", clue:"Öğrencilerin okul dışında yaptığı görev", icon:"📝", row:6, col:2, dir:"H" },
+    { word:"PLAN", clue:"Bir işi yapmadan önce hazırlanan tasarı", icon:"📅", row:9, col:2, dir:"H" } ] },
+  { chapter: 25, words: [
+    { word:"RİTİM", clue:"Müzikte seslerin düzenli aralığı", icon:"🥁", row:0, col:0, dir:"H" },
+    { word:"RENK", clue:"Işığın eşyalara çarpmasıyla oluşan duyum", icon:"🎨", row:0, col:0, dir:"V" },
+    { word:"SES", clue:"Kulağın duyabildiği titreşim", icon:"🔊", row:3, col:2, dir:"H" },
+    { word:"ŞART", clue:"Bir işin olması için gereken koşul", icon:"⚠️", row:6, col:2, dir:"H" },
+    { word:"TEMA", clue:"Bir eserde işlenen ana konu", icon:"🎭", row:9, col:2, dir:"H" } ] },
+  { chapter: 26, words: [
+    { word:"UYDU", clue:"Gezegen etrafında dönen gök cismi", icon:"🛰️", row:0, col:0, dir:"H" },
+    { word:"UÇAK", clue:"Havada hızlı ulaşım sağlayan taşıt", icon:"✈️", row:0, col:0, dir:"V" },
+    { word:"ÜYE", clue:"Bir topluluğa dahil olan kişi", icon:"👤", row:3, col:2, dir:"H" },
+    { word:"VOLKAN", clue:"Lav püskürten dağ, yanardağ", icon:"🌋", row:6, col:2, dir:"H" },
+    { word:"YASA", clue:"Devletin belirlediği kesin hukuk kuralı", icon:"⚖️", row:9, col:2, dir:"H" } ] },
+  { chapter: 27, words: [
+    { word:"ZEYTİN", clue:"Ege ve Akdeniz'e özgü ağaç ve meyvesi", icon:"🫒", row:0, col:0, dir:"H" },
+    { word:"ZEMİN", clue:"Üzerine basılan yer, taban", icon:"🧱", row:0, col:0, dir:"V" },
+    { word:"AÇI", clue:"Kesişen iki doğru arasındaki açıklık", icon:"📐", row:3, col:2, dir:"H" },
+    { word:"BAĞ", clue:"Üzüm yetiştirilen bahçe veya ilişki", icon:"🍇", row:6, col:2, dir:"H" },
+    { word:"ÇAĞ", clue:"Tarihin ayrıldığı büyük zaman dilimleri", icon:"⏳", row:9, col:2, dir:"H" } ] },
+  { chapter: 28, words: [
+    { word:"DOĞRU", clue:"Yalan olmayan, gerçeğe uygun", icon:"✔️", row:0, col:0, dir:"H" },
+    { word:"DİL", clue:"İletişim aracı veya tat alma organı", icon:"🗣️", row:0, col:0, dir:"V" },
+    { word:"ETKİ", clue:"Bir şeyin başka bir şey üzerindeki gücü", icon:"💥", row:3, col:2, dir:"H" },
+    { word:"FORM", clue:"Bir nesnenin dış görünüşü, şekli", icon:"🏺", row:6, col:2, dir:"H" },
+    { word:"GÜÇ", clue:"Bir işi yapabilme yetisi, kuvvet", icon:"💪", row:9, col:2, dir:"H" } ] },
+  { chapter: 29, words: [
+    { word:"HAK", clue:"Adaletin gerektirdiği kazanım", icon:"⚖️", row:0, col:0, dir:"H" },
+    { word:"HIZ", clue:"Bir cismin hareket çabukluğu", icon:"🏎️", row:0, col:0, dir:"V" },
+    { word:"İZLER", clue:"Geçmişte bırakılan işaretler", icon:"🐾", row:3, col:2, dir:"H" },
+    { word:"KÖY", clue:"Şehirden küçük kırsal yerleşim yeri", icon:"🏡", row:6, col:2, dir:"H" },
+    { word:"LİSTE", clue:"Alt alta yazılmış isimler sırası", icon:"📋", row:9, col:2, dir:"H" } ] },
+  { chapter: 30, words: [
+    { word:"MADDE", clue:"Uzayda yer kaplayan her şey", icon:"📦", row:0, col:0, dir:"H" },
+    { word:"MOTOR", clue:"Taşıtları veya makineleri çalıştıran güç", icon:"⚙️", row:0, col:0, dir:"V" },
+    { word:"NOKTA", clue:"Cümlenin sonuna konan işaret", icon:"⚫", row:3, col:2, dir:"H" },
+    { word:"OLAY", clue:"Meydana gelen ilgi çekici durum", icon:"📰", row:6, col:2, dir:"H" },
+    { word:"ÖDÜL", clue:"Başarı karşılığında verilen armağan", icon:"🏆", row:9, col:2, dir:"H" } ] },
+  { chapter: 31, words: [
+    { word:"PARA", clue:"Alışverişte kullanılan değişim aracı", icon:"💵", row:0, col:0, dir:"H" },
+    { word:"PUAN", clue:"Bir yarışma veya sınavdaki skor", icon:"💯", row:0, col:0, dir:"V" },
+    { word:"RİSK", clue:"Zarara uğrama ihtimali, tehlike", icon:"⚠️", row:3, col:2, dir:"H" },
+    { word:"SIVI", clue:"Akışkan haldeki madde türü", icon:"💧", row:6, col:2, dir:"H" },
+    { word:"ŞANS", clue:"Rastlantıları belirleyen talih", icon:"🍀", row:9, col:2, dir:"H" } ] },
+  { chapter: 32, words: [
+    { word:"TÜR", clue:"Ortak özellikleri olan canlı grubu, cins", icon:"🐕", row:0, col:0, dir:"H" },
+    { word:"TEST", clue:"Bilgiyi ölçmek için yapılan sınav", icon:"📝", row:0, col:0, dir:"V" },
+    { word:"UZUN", clue:"Kısa karşıtı, boyu çok olan", icon:"📏", row:3, col:2, dir:"H" },
+    { word:"ÜST", clue:"Bir şeyin yukarıda kalan kısmı", icon:"⬆️", row:6, col:2, dir:"H" },
+    { word:"VİZYON", clue:"Gelecekte ulaşılmak istenen hedef", icon:"🔭", row:9, col:2, dir:"H" } ] },
+  { chapter: 33, words: [
+    { word:"YARIŞ", clue:"Üstün gelmek için yapılan mücadele", icon:"🏁", row:0, col:0, dir:"H" },
+    { word:"YARGI", clue:"Mahkemenin verdiği karar", icon:"⚖️", row:0, col:0, dir:"V" },
+    { word:"ZARF", clue:"İçine mektup konan kağıt kılıf", icon:"✉️", row:3, col:2, dir:"H" },
+    { word:"ALAN", clue:"Belirli bir amaca ayrılmış bölge veya yüzölçümü", icon:"🟩", row:6, col:2, dir:"H" },
+    { word:"BÖLGE", clue:"Sınırları belirlenmiş coğrafi alan", icon:"🗺️", row:9, col:2, dir:"H" } ] },
+  { chapter: 34, words: [
+    { word:"CİNS", clue:"Tür, çeşit, soy", icon:"🐈", row:0, col:0, dir:"H" },
+    { word:"CİSİM", clue:"Madde halindeki varlık, nesne", icon:"🧊", row:0, col:0, dir:"V" },
+    { word:"ÇAP", clue:"Daireyi ikiye bölen en büyük çizgi uzunluğu", icon:"⭕", row:3, col:2, dir:"H" },
+    { word:"DERS", clue:"Öğrenmek için yapılan çalışma süresi", icon:"🏫", row:6, col:2, dir:"H" },
+    { word:"EKRAN", clue:"Görüntü yansıtan cam veya dijital yüzey", icon:"📺", row:9, col:2, dir:"H" } ] },
+  { chapter: 35, words: [
+    { word:"FAZ", clue:"Elektrikte akım ucu veya maddenin halleri", icon:"⚡", row:0, col:0, dir:"H" },
+    { word:"FEN", clue:"Doğa olaylarını inceleyen ders", icon:"🧪", row:0, col:0, dir:"V" },
+    { word:"GAZ", clue:"Uçucu özellikteki madde hali", icon:"💨", row:3, col:2, dir:"H" },
+    { word:"GRUP", clue:"Ortak özelliği olan insan topluluğu", icon:"👥", row:6, col:2, dir:"H" },
+    { word:"HAT", clue:"Ulaşım veya iletişim çizgisi", icon:"🚇", row:9, col:2, dir:"H" } ] },
+  { chapter: 36, words: [
+    { word:"İLKE", clue:"Temel alınan prensip, kural", icon:"⚖️", row:0, col:0, dir:"H" },
+    { word:"İLLET", clue:"Hastalık veya kötü alışkanlık", icon:"🤒", row:0, col:0, dir:"V" },
+    { word:"KAMP", clue:"Çadır kurarak doğada konaklama", icon:"⛺", row:3, col:2, dir:"H" },
+    { word:"KATI", clue:"Sıvı ve gaz olmayan, sert madde", icon:"🪨", row:6, col:2, dir:"H" },
+    { word:"METİN", clue:"Yazılmış olan paragraf veya eser", icon:"📄", row:9, col:2, dir:"H" } ] },
+  { chapter: 37, words: [
+    { word:"MİL", clue:"Uzun mesafe deniz/kara ölçü birimi", icon:"📏", row:0, col:0, dir:"H" },
+    { word:"METOT", clue:"Bir amaca ulaşmak için izlenen yol, yöntem", icon:"🛠️", row:0, col:0, dir:"V" },
+    { word:"NAKİL", clue:"Bir yerden başka bir yere taşıma", icon:"🚚", row:3, col:2, dir:"H" },
+    { word:"ORAN", clue:"İki büyüklüğün birbirine kıyaslanması", icon:"➗", row:6, col:2, dir:"H" },
+    { word:"ÖLÇEK", clue:"Haritadaki küçültme oranı", icon:"🗺️", row:9, col:2, dir:"H" } ] },
+  { chapter: 38, words: [
+    { word:"POLİS", clue:"Güvenliği sağlayan devlet görevlisi", icon:"🚓", row:0, col:0, dir:"H" },
+    { word:"PAY", clue:"Bir bütünden ayrılan parça, hisse", icon:"🍰", row:0, col:0, dir:"V" },
+    { word:"ROTA", clue:"Gidilecek yön, izlenecek yol", icon:"🧭", row:3, col:2, dir:"H" },
+    { word:"SINIF", clue:"Öğrencilerin eğitim gördüğü oda", icon:"🏫", row:6, col:2, dir:"H" },
+    { word:"ŞARKI", clue:"Müzik eşliğinde söylenen sözler", icon:"🎵", row:9, col:2, dir:"H" } ] },
+  { chapter: 39, words: [
+    { word:"TARIM", clue:"Toprağı ekip biçerek ürün elde etme", icon:"🌾", row:0, col:0, dir:"H" },
+    { word:"TAŞ", clue:"Sert kayaç parçası", icon:"🪨", row:0, col:0, dir:"V" },
+    { word:"UÇURUM", clue:"Çok dik ve derin yamaç", icon:"⛰️", row:3, col:2, dir:"H" },
+    { word:"ÜRÜN", clue:"Üretim sonucunda elde edilen mal", icon:"📦", row:6, col:2, dir:"H" },
+    { word:"VERGİ", clue:"Halkın devlete ödediği parasal yükümlülük", icon:"💰", row:9, col:2, dir:"H" } ] },
+  { chapter: 40, words: [
+    { word:"YOL", clue:"Ulaşımı sağlayan güzergah", icon:"🛣️", row:0, col:0, dir:"H" },
+    { word:"YÜZ", clue:"Başın ön kısmı veya 100 sayısı", icon:"😊", row:0, col:0, dir:"V" },
+    { word:"ZİL", clue:"Ses çıkararak haber veren küçük çan", icon:"🔔", row:3, col:2, dir:"H" },
+    { word:"ASIR", clue:"Yüz yıllık zaman dilimi, yüzyıl", icon:"⏳", row:6, col:2, dir:"H" },
+    { word:"BİNA", clue:"Barınmak için inşa edilen yapı", icon:"🏢", row:9, col:2, dir:"H" } ] },
+  { chapter: 41, words: [
+    { word:"CAM", clue:"Saydam, kırılgan sert madde", icon:"🪟", row:0, col:0, dir:"H" },
+    { word:"CAN", clue:"Canlı varlıkların yaşama gücü", icon:"❤️", row:0, col:0, dir:"V" },
+    { word:"ÇANTA", clue:"Eşya taşımak için kullanılan kap", icon:"🎒", row:3, col:2, dir:"H" },
+    { word:"DAĞ", clue:"Çevresine göre çok yüksek doğal yapı", icon:"⛰️", row:6, col:2, dir:"H" },
+    { word:"DAL", clue:"Ağacın kolları", icon:"🌳", row:9, col:2, dir:"H" } ] },
+  { chapter: 42, words: [
+    { word:"GÖL", clue:"Dört tarafı kara ile çevrili su kütlesi", icon:"🏞️", row:0, col:0, dir:"H" },
+    { word:"GÖZ", clue:"Görme duyusu organı", icon:"👁️", row:0, col:0, dir:"V" },
+    { word:"FON", clue:"Arka plan veya kaynak para", icon:"💰", row:3, col:2, dir:"H" },
+    { word:"EGE", clue:"Türkiye'nin batısındaki deniz ve bölge", icon:"🌊", row:6, col:2, dir:"H" },
+    { word:"ELLER", clue:"Kolların ucunda yer alan kavrama organları", icon:"🖐️", row:9, col:2, dir:"H" } ] },
+  { chapter: 43, words: [
+    { word:"KAN", clue:"Damarlarda dolaşan kırmızı hayati sıvı", icon:"🩸", row:0, col:0, dir:"H" },
+    { word:"KOL", clue:"Omuzdan ele kadar olan uzuv", icon:"💪", row:0, col:0, dir:"V" },
+    { word:"HALK", clue:"Bir ülkede yaşayan insanların tümü", icon:"👥", row:3, col:2, dir:"H" },
+    { word:"İLÇE", clue:"İlden daha küçük yerleşim yönetim birimi", icon:"🏡", row:6, col:2, dir:"H" },
+    { word:"KUM", clue:"Sahildeki ufalanmış taş tanecikleri", icon:"🏖️", row:9, col:2, dir:"H" } ] },
+  { chapter: 44, words: [
+    { word:"MİLLET", clue:"Aynı dili ve tarihi paylaşan topluluk", icon:"🇹🇷", row:0, col:0, dir:"H" },
+    { word:"MESAJ", clue:"İletilen bilgi, ileti", icon:"✉️", row:0, col:0, dir:"V" },
+    { word:"NEM", clue:"Havadaki su buharı", icon:"💧", row:3, col:2, dir:"H" },
+    { word:"ONUR", clue:"İnsanın kendine duyduğu saygı, gurur", icon:"👑", row:6, col:2, dir:"H" },
+    { word:"ÖZEL", clue:"Sadece bir kişiye veya gruba ait olan", icon:"⭐", row:9, col:2, dir:"H" } ] },
+  { chapter: 45, words: [
+    { word:"SIR", clue:"Başkalarına söylenmemesi gereken bilgi", icon:"🤐", row:0, col:0, dir:"H" },
+    { word:"SAÇ", clue:"Başta uzayan kıl", icon:"💇", row:0, col:0, dir:"V" },
+    { word:"RUH", clue:"Bedeni canlandıran manevi varlık", icon:"👻", row:3, col:2, dir:"H" },
+    { word:"SÜT", clue:"İnek ve koyun gibi hayvanların besleyici sıvısı", icon:"🥛", row:6, col:2, dir:"H" },
+    { word:"ŞEF", clue:"Bir mutfağın baş aşçısı veya lider", icon:"👨‍🍳", row:9, col:2, dir:"H" } ] },
+  { chapter: 46, words: [
+    { word:"TACI", clue:"Kral veya kraliçenin başlığı (belirtme hali)", icon:"👑", row:0, col:0, dir:"H" },
+    { word:"TEL", clue:"Metallerden yapılan ince ip şekli", icon:"🎸", row:0, col:0, dir:"V" },
+    { word:"UÇURTMA", clue:"Rüzgar yardımıyla uçurulan ipli oyuncak", icon:"🪁", row:3, col:2, dir:"H" },
+    { word:"ÜNLÜ", clue:"Herkes tarafından tanınan, meşhur", icon:"🌟", row:6, col:2, dir:"H" },
+    { word:"VEYA", clue:"İki seçenekten birini bağlayan kelime", icon:"↔️", row:9, col:2, dir:"H" } ] },
+  { chapter: 47, words: [
+    { word:"YAZ", clue:"En sıcak mevsim", icon:"☀️", row:0, col:0, dir:"H" },
+    { word:"YAŞ", clue:"Doğumdan itibaren geçen yılların sayısı", icon:"🎂", row:0, col:0, dir:"V" },
+    { word:"ZATEN", clue:"Başından beri var olduğu bilinen", icon:"✅", row:3, col:2, dir:"H" },
+    { word:"ANI", clue:"Geçmişte yaşanmış hatırlanan olay, hatıra", icon:"💭", row:6, col:2, dir:"H" },
+    { word:"ATLET", clue:"Spor yarışmalarına katılan kişi veya iç çamaşırı", icon:"🏃", row:9, col:2, dir:"H" } ] },
+  { chapter: 48, words: [
+    { word:"GİZ", clue:"Sır, bilinmeyen", icon:"🤐", row:0, col:0, dir:"H" },
+    { word:"GÜZ", clue:"Sonbahar mevsimi", icon:"🍂", row:0, col:0, dir:"V" },
+    { word:"BEY", clue:"Saygı belirten erkek ünvanı", icon:"👨", row:3, col:2, dir:"H" },
+    { word:"BİZ", clue:"Kendimizi de içine alan topluluk", icon:"👥", row:6, col:2, dir:"H" },
+    { word:"HEYKEL", clue:"Taş yontularak yapılan sanat eseri", icon:"🗿", row:9, col:2, dir:"H" } ] },
+  { chapter: 49, words: [
+    { word:"KELİME", clue:"Anlamı olan söz, sözcük", icon:"📝", row:0, col:0, dir:"H" },
+    { word:"KİMYA", clue:"Maddelerin yapılarını inceleyen bilim", icon:"🧪", row:0, col:0, dir:"V" },
+    { word:"KUVVET", clue:"Hareketi sağlayan veya durduran itme gücü", icon:"💪", row:3, col:2, dir:"H" },
+    { word:"KUZEY", clue:"Pusulanın gösterdiği üst yön", icon:"⬆️", row:6, col:2, dir:"H" },
+    { word:"KURAM", clue:"Gözlem ve deneyle ispatlanmaya çalışılan teori", icon:"🧠", row:9, col:2, dir:"H" } ] },
+  { chapter: 50, words: [
+    { word:"DENİZ", clue:"Karaları kaplayan devasa tuzlu su birikintisi", icon:"🌊", row:0, col:0, dir:"H" },
+    { word:"DERECE", clue:"Sıcaklık veya açı ölçme birimi", icon:"🌡️", row:0, col:0, dir:"V" },
+    { word:"DİRENÇ", clue:"Karşı koyma, dayanıklılık", icon:"⚡", row:3, col:2, dir:"H" },
+    { word:"DİZİ", clue:"Bölümler halinde yayınlanan program veya sıra", icon:"📺", row:6, col:2, dir:"H" },
+    { word:"DÜZEY", clue:"Bir şeyin kalitesi, aşaması veya seviyesi", icon:"📈", row:9, col:2, dir:"H" } ] }
+];
+
+// ═══════════════════════════════════════════════════════════
+//  GAME STATE  (single source of truth)
+// ═══════════════════════════════════════════════════════════
+let currentLevel = 0;
+let gridData   = [];   // gridData[r][c] = {letter, filled, wordIndices:[]} | null
+let gridRows   = 0, gridCols = 0;
+let wordStatus = [];   // 'pending' | 'solved'
+let currentClueIdx = 0;
+
+let letterPool  = [];  // letters available in the circle (may contain duplicates)
+let letterOrder = [];  // display order = shuffled indices into letterPool
+let selectedLetters = []; // [{poolIdx, letter}]
+
+let gemCount  = 151;
+let hintCount = 100;
+
+// ═══════════════════════════════════════════════════════════
+//  GRID CONSTRUCTION  — runs ONCE per level
+// ═══════════════════════════════════════════════════════════
+function buildLevelGrid() {
+  const words = LEVELS[currentLevel].words;
+  let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+
+  for (const w of words) {
+    minR = Math.min(minR, w.row);
+    maxR = Math.max(maxR, w.row + (w.dir === "V" ? w.word.length - 1 : 0));
+    minC = Math.min(minC, w.col);
+    maxC = Math.max(maxC, w.col + (w.dir === "H" ? w.word.length - 1 : 0));
+  }
+  gridRows = maxR - minR + 1;
+  gridCols = maxC - minC + 1;
+  gridData = Array.from({length: gridRows}, () => Array(gridCols).fill(null));
+
+  for (let wi = 0; wi < words.length; wi++) {
+    const w = words[wi];
+    for (let i = 0; i < w.word.length; i++) {
+      const r = w.row - minR + (w.dir === "V" ? i : 0);
+      const c = w.col - minC + (w.dir === "H" ? i : 0);
+      if (!gridData[r][c]) {
+        gridData[r][c] = { letter: w.word[i], filled: false, wordIndices: [] };
+      }
+      if (!gridData[r][c].wordIndices.includes(wi)) {
+        gridData[r][c].wordIndices.push(wi);
+      }
+    }
+  }
+  LEVELS[currentLevel]._minR = minR;
+  LEVELS[currentLevel]._minC = minC;
+}
+
+function getWordCells(wi) {
+  const lv = LEVELS[currentLevel];
+  const w  = lv.words[wi];
+  return Array.from({length: w.word.length}, (_, i) => ({
+    r: w.row - lv._minR + (w.dir === "V" ? i : 0),
+    c: w.col - lv._minC + (w.dir === "H" ? i : 0),
+    letter: w.word[i]
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GRID DOM  — initial render + incremental cell refresh
+// ═══════════════════════════════════════════════════════════
+function renderGridDOM() {
+  const container = document.getElementById('crosswordGrid');
+  container.innerHTML = '';
+
+  const maxW    = Math.min(340, window.innerWidth - 90);
+  const cellSz  = Math.min(42, Math.floor(maxW / (gridCols + 0.5)));
+  const fontSz  = Math.floor(cellSz * 0.44);
+
+  for (let r = 0; r < gridRows; r++) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'grid-row';
+    for (let c = 0; c < gridCols; c++) {
+      const el = document.createElement('div');
+      el.className = 'grid-cell';
+      el.style.cssText = `width:${cellSz}px;height:${cellSz}px;font-size:${fontSz}px;`;
+      el.dataset.r = r;
+      el.dataset.c = c;
+      if (!gridData[r][c]) {
+        el.classList.add('empty');
+      } else if (gridData[r][c].filled) {
+        el.classList.add('filled');
+        el.textContent = gridData[r][c].letter;
+      }
+      rowEl.appendChild(el);
+    }
+    container.appendChild(rowEl);
+  }
+
+  const sidebar = document.getElementById('gemsSidebar');
+  sidebar.innerHTML = '';
+  LEVELS[currentLevel].words.forEach((_, i) => {
+    const gem = document.createElement('div');
+    gem.className = 'sidebar-gem' + (wordStatus[i] === 'solved' ? ' earned' : '');
+    gem.id = 'sideGem_' + i;
+    sidebar.appendChild(gem);
+  });
+
+  highlightCurrentWord();
+}
+
+function refreshCell(r, c) {
+  const el = document.querySelector(`.grid-cell[data-r="${r}"][data-c="${c}"]`);
+  if (!el || !gridData[r][c]) return;
+  el.classList.remove('empty', 'highlighted');
+  if (gridData[r][c].filled) {
+    el.classList.add('filled');
+    el.textContent = gridData[r][c].letter;
+    el.classList.add('popin');
+    setTimeout(() => el.classList.remove('popin'), 450);
+  }
+}
+
+function highlightCurrentWord() {
+  document.querySelectorAll('.grid-cell.highlighted').forEach(el => el.classList.remove('highlighted'));
+  if (wordStatus[currentClueIdx] === 'solved') return;
+  getWordCells(currentClueIdx).forEach(({r, c}) => {
+    if (gridData[r][c] && !gridData[r][c].filled) {
+      const el = document.querySelector(`.grid-cell[data-r="${r}"][data-c="${c}"]`);
+      if (el) el.classList.add('highlighted');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LETTER POOL
+// ═══════════════════════════════════════════════════════════
+function buildLetterPool(wi) {
+  const pool = LEVELS[currentLevel].words[wi].word.split('');
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LETTER CIRCLE
+// ═══════════════════════════════════════════════════════════
+function renderLetterCircle() {
+  letterPool  = buildLetterPool(currentClueIdx);
+  letterOrder = letterPool.map((_, i) => i);
+  selectedLetters = [];
+  drawCircle();
+}
+
+function drawCircle() {
+  const wrap = document.getElementById('circleWrap');
+  const svg  = document.getElementById('circleSvg');
+  wrap.querySelectorAll('.letter-btn').forEach(el => el.remove());
+  svg.innerHTML = '';
+
+  const N = letterPool.length;
+  const CX = 115, CY = 115, R = 82;
+
+  if (selectedLetters.length > 1) {
+    const pts = selectedLetters.map(s => {
+      const pos = letterOrder.indexOf(s.poolIdx);
+      const ang = (2 * Math.PI / N) * pos - Math.PI / 2;
+      return { x: CX + R * Math.cos(ang), y: CY + R * Math.sin(ang) };
+    });
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) d += ` L ${pts[i].x} ${pts[i].y}`;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d); path.setAttribute('class', 'draw-line');
+    svg.appendChild(path);
+  }
+
+  for (let i = 0; i < N; i++) {
+    const poolIdx = letterOrder[i];
+    const ang = (2 * Math.PI / N) * i - Math.PI / 2;
+    const btn = document.createElement('button');
+    btn.className = 'letter-btn';
+    btn.textContent = letterPool[poolIdx];
+    btn.dataset.poolIdx = poolIdx;
+    btn.style.left = (CX + R * Math.cos(ang)) + 'px';
+    btn.style.top  = (CY + R * Math.sin(ang)) + 'px';
+    if (selectedLetters.some(s => s.poolIdx === poolIdx)) btn.classList.add('selected');
+    btn.addEventListener('pointerdown', e => { e.preventDefault(); onLetterPress(poolIdx); });
+    wrap.appendChild(btn);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════════════════
+function onLetterPress(poolIdx) {
+  const pos = selectedLetters.findIndex(s => s.poolIdx === poolIdx);
+  if (pos !== -1) {
+    if (pos === selectedLetters.length - 1) selectedLetters.pop();
+    updateWordBadge(); drawCircle(); return;
+  }
+  selectedLetters.push({ poolIdx, letter: letterPool[poolIdx] });
+  updateWordBadge(); drawCircle();
+  checkWordMatch(selectedLetters.map(s => s.letter).join(''));
+}
+
+function updateWordBadge() {
+  const badge = document.getElementById('wordBadge');
+  const word  = selectedLetters.map(s => s.letter).join('');
+  badge.textContent = word;
+  badge.classList.toggle('show', word.length > 0);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WORD MATCHING
+// ═══════════════════════════════════════════════════════════
+function checkWordMatch(attempt) {
+  const words = LEVELS[currentLevel].words;
+
+  for (let wi = 0; wi < words.length; wi++) {
+    if (wordStatus[wi] === 'solved') continue;
+    if (words[wi].word === attempt) { solveWord(wi); return; }
+  }
+
+  const remaining = words.filter((_, i) => wordStatus[i] !== 'solved');
+  if (remaining.length && attempt.length >= Math.max(...remaining.map(w => w.word.length))) {
+    showFeedback('Yanlış! ❌', '#ef4444');
+    setTimeout(() => { selectedLetters = []; updateWordBadge(); drawCircle(); }, 700);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SOLVE WORD
+// ═══════════════════════════════════════════════════════════
+function solveWord(wi) {
+  wordStatus[wi] = 'solved';
+
+  getWordCells(wi).forEach(({ r, c }) => {
+    if (!gridData[r][c].filled) {
+      gridData[r][c].filled = true;
+      refreshCell(r, c);
+    } else {
+      const el = document.querySelector(`.grid-cell[data-r="${r}"][data-c="${c}"]`);
+      if (el) el.classList.remove('highlighted');
+    }
+  });
+
+  const sideGem = document.getElementById('sideGem_' + wi);
+  if (sideGem) sideGem.classList.add('earned');
+
+  const phrases = ['MUHTEŞEM! 🏆','HARİKA! ✨','SÜPER! 🎯','MÜKEMMEL! 💫','BRAVİSSİMO! 🌟'];
+  showFeedback(phrases[Math.floor(Math.random() * phrases.length)], '#7c3aed');
+
+  gemCount += 10;
+  document.getElementById('gemCount').textContent = gemCount;
+  spawnSparkle('+10 💎');
+
+  selectedLetters = [];
+  updateWordBadge();
+
+  const next = wordStatus.findIndex(s => s !== 'solved');
+  if (next === -1) {
+    setTimeout(showLevelComplete, 900);
+  } else {
+    currentClueIdx = next;
+    updateClue();
+    highlightCurrentWord();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CLUE
+// ═══════════════════════════════════════════════════════════
+function updateClue() {
+  const w = LEVELS[currentLevel].words[currentClueIdx];
+  document.getElementById('clueText').textContent = w.clue;
+  document.getElementById('clueIcon').textContent = w.icon;
+  document.getElementById('chapterBadge').textContent = 'Bölüm ' + LEVELS[currentLevel].chapter;
+  renderLetterCircle();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════════════
+function shuffleLetters() {
+  for (let i = letterOrder.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letterOrder[i], letterOrder[j]] = [letterOrder[j], letterOrder[i]];
+  }
+  selectedLetters = []; updateWordBadge(); drawCircle();
+}
+
+function skipWord() {
+  const next = wordStatus.findIndex((s, i) => s !== 'solved' && i !== currentClueIdx);
+  if (next !== -1) {
+    currentClueIdx = next; selectedLetters = [];
+    updateWordBadge(); updateClue(); highlightCurrentWord();
+  } else { showFeedback('Başka kelime yok!', '#64748b'); }
+}
+
+function useHint() {
+  if (hintCount <= 0) { showFeedback('İpucu kalmadı!', '#f59e0b'); return; }
+  const cells    = getWordCells(currentClueIdx);
+  const unfilled = cells.find(({ r, c }) => !gridData[r][c].filled);
+  if (!unfilled) return;
+
+  hintCount -= 10;
+  document.getElementById('hintCount').textContent = hintCount;
+  gridData[unfilled.r][unfilled.c].filled = true;
+  refreshCell(unfilled.r, unfilled.c);
+  showFeedback('İpucu kullanıldı 💡', '#f59e0b');
+
+  if (cells.every(({ r, c }) => gridData[r][c].filled)) setTimeout(() => solveWord(currentClueIdx), 350);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FEEDBACK & FX
+// ═══════════════════════════════════════════════════════════
+let fbTimer = null;
+function showFeedback(msg, color = '#7c3aed') {
+  const fb = document.getElementById('feedback');
+  fb.textContent = msg; fb.style.background = color; fb.className = 'feedback show';
+  if (fbTimer) clearTimeout(fbTimer);
+  fbTimer = setTimeout(() => {
+    fb.className = 'feedback hide';
+    setTimeout(() => fb.className = 'feedback', 400);
+  }, 1300);
+}
+
+function spawnSparkle(text) {
+  const sp = document.createElement('div');
+  sp.className = 'sparkle'; sp.textContent = text;
+  sp.style.top = '65px'; sp.style.right = '65px';
+  document.body.appendChild(sp);
+  setTimeout(() => sp.remove(), 950);
+}
+
+function showLevelComplete() {
+  spawnConfetti();
+  document.getElementById('levelStars').textContent = '⭐⭐⭐';
+  document.getElementById('levelScore').textContent =
+    `Tüm kelimeleri buldun! +${LEVELS[currentLevel].words.length * 10} 💎`;
+  document.getElementById('levelComplete').classList.add('show');
+}
+
+function nextLevel() {
+  document.getElementById('levelComplete').classList.remove('show');
+  currentLevel = (currentLevel + 1) % LEVELS.length;
+  initLevel();
+}
+
+function spawnConfetti() {
+  const colors = ['#a855f7','#f59e0b','#10b981','#3b82f6','#ef4444','#ec4899'];
+  const cont = document.getElementById('confettiContainer');
+  for (let i = 0; i < 65; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.width  = (7 + Math.random() * 9) + 'px';
+    p.style.height = (7 + Math.random() * 9) + 'px';
+    p.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
+    p.style.animationDuration = (1.4 + Math.random() * 2) + 's';
+    p.style.animationDelay    = Math.random() * 0.9 + 's';
+    cont.appendChild(p);
+    setTimeout(() => p.remove(), 4500);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+function initLevel() {
+  wordStatus     = LEVELS[currentLevel].words.map(() => 'pending');
+  currentClueIdx = 0;
+  selectedLetters = [];
+  buildLevelGrid();   // build single shared grid state
+  renderGridDOM();    // render DOM from state
+  updateClue();       // set clue + build letter pool
+}
+
+initLevel();
+</script>
+</body>
+</html>
