@@ -160,8 +160,8 @@ body {
     <div class="buildings"></div><div class="spire"></div><div class="castle"></div>
   </div>
   <div class="top-bar">
-    <div class="gem-counter">💎 <span class="gem-count" id="gemCount">151</span></div>
-    <div class="chapter-badge" id="chapterBadge">Bölüm 1</div>
+    <div class="gem-counter">💎 <span class="gem-count" id="gemCount">0</span></div>
+    <div class="chapter-badge" id="chapterBadge">Bölüm -</div>
     <button class="settings-btn" onclick="showFeedback('⚙ Ayarlar yakında!','#64748b')">⚙</button>
   </div>
   <div class="clue-card">
@@ -183,7 +183,7 @@ body {
   <div class="bottom-bar">
     <button class="skip-btn" onclick="skipWord()" title="Geç">⏭</button>
     <div style="flex:1"></div>
-    <button class="hint-btn" onclick="useHint()">💡 <span id="hintCount">100</span></button>
+    <button class="hint-btn" onclick="useHint()">💡 <span id="hintCount">0</span></button>
   </div>
 </div>
 <div class="feedback" id="feedback"></div>
@@ -517,11 +517,39 @@ let letterPool  = [];  // letters available in the circle (may contain duplicate
 let letterOrder = [];  // display order = shuffled indices into letterPool
 let selectedLetters = []; // [{poolIdx, letter}]
 
-let gemCount  = 151;
-let hintCount = 100;
+// ═══════════════════════════════════════════════════════════
+//  LOCAL STORAGE & HAFIZA İŞLEMLERİ
+// ═══════════════════════════════════════════════════════════
+let completedLevels = JSON.parse(localStorage.getItem('wordGameCompleted')) || [];
+let gemCount = parseInt(localStorage.getItem('wordGameGems'));
+if(isNaN(gemCount)) gemCount = 151; // İlk başlangıç elmas sayısı
+let hintCount = parseInt(localStorage.getItem('wordGameHints'));
+if(isNaN(hintCount)) hintCount = 100; // İlk başlangıç ipucu sayısı
+
+function saveGameData() {
+  localStorage.setItem('wordGameGems', gemCount);
+  localStorage.setItem('wordGameHints', hintCount);
+  localStorage.setItem('wordGameCompleted', JSON.stringify(completedLevels));
+}
+
+function pickRandomLevel() {
+  let available = [];
+  for(let i = 0; i < LEVELS.length; i++) {
+    if(!completedLevels.includes(i)) available.push(i);
+  }
+  
+  // Tüm bölümler bittiyse hafızayı sıfırla ve yeniden başlat
+  if(available.length === 0) {
+    completedLevels = [];
+    for(let i = 0; i < LEVELS.length; i++) available.push(i);
+  }
+  
+  const randomIndex = Math.floor(Math.random() * available.length);
+  currentLevel = available[randomIndex];
+}
 
 // ═══════════════════════════════════════════════════════════
-//  GRID CONSTRUCTION  — runs ONCE per level
+//  GRID CONSTRUCTION
 // ═══════════════════════════════════════════════════════════
 function buildLevelGrid() {
   const words = LEVELS[currentLevel].words;
@@ -565,7 +593,7 @@ function getWordCells(wi) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  GRID DOM  — initial render + incremental cell refresh
+//  GRID DOM
 // ═══════════════════════════════════════════════════════════
 function renderGridDOM() {
   const container = document.getElementById('crosswordGrid');
@@ -752,6 +780,7 @@ function solveWord(wi) {
 
   gemCount += 10;
   document.getElementById('gemCount').textContent = gemCount;
+  saveGameData(); // Veriyi kaydet
   spawnSparkle('+10 💎');
 
   selectedLetters = [];
@@ -805,6 +834,8 @@ function useHint() {
 
   hintCount -= 10;
   document.getElementById('hintCount').textContent = hintCount;
+  saveGameData(); // Veriyi kaydet
+  
   gridData[unfilled.r][unfilled.c].filled = true;
   refreshCell(unfilled.r, unfilled.c);
   showFeedback('İpucu kullanıldı 💡', '#f59e0b');
@@ -844,7 +875,15 @@ function showLevelComplete() {
 
 function nextLevel() {
   document.getElementById('levelComplete').classList.remove('show');
-  currentLevel = (currentLevel + 1) % LEVELS.length;
+  
+  // Bulunduğumuz bölümü tamamlananlara ekle ve kaydet
+  if (!completedLevels.includes(currentLevel)) {
+    completedLevels.push(currentLevel);
+  }
+  saveGameData();
+  
+  // Yeni rastgele bölüme geç
+  pickRandomLevel();
   initLevel();
 }
 
@@ -870,6 +909,9 @@ function spawnConfetti() {
 //  INIT
 // ═══════════════════════════════════════════════════════════
 function initLevel() {
+  document.getElementById('gemCount').textContent = gemCount;
+  document.getElementById('hintCount').textContent = hintCount;
+  
   wordStatus     = LEVELS[currentLevel].words.map(() => 'pending');
   currentClueIdx = 0;
   selectedLetters = [];
@@ -878,6 +920,8 @@ function initLevel() {
   updateClue();       // set clue + build letter pool
 }
 
+// Oyun başladığında ilk rastgele bölümü seç ve başlat
+pickRandomLevel();
 initLevel();
 </script>
 </body>
