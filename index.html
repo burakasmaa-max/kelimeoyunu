@@ -47,9 +47,6 @@ body {
   border-radius:22px;padding:6px 14px 6px 10px;display:flex;align-items:center;gap:6px;
   box-shadow:0 3px 10px rgba(0,0,0,.2);}
 .gem-count{color:white;font-weight:900;font-size:16px;}
-.chapter-badge{background:linear-gradient(135deg,#2563eb,#1d4ed8);border:2px solid rgba(255,255,255,.3);
-  border-radius:22px;padding:6px 18px;color:white;font-weight:900;font-size:15px;
-  box-shadow:0 3px 10px rgba(0,0,0,.2);}
 .settings-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);
   border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;
   font-size:18px;cursor:pointer;color:white;transition:transform .2s;}
@@ -161,7 +158,6 @@ body {
   </div>
   <div class="top-bar">
     <div class="gem-counter">💎 <span class="gem-count" id="gemCount">0</span></div>
-    <div class="chapter-badge" id="chapterBadge">Bölüm -</div>
     <button class="settings-btn" onclick="showFeedback('⚙ Ayarlar yakında!','#64748b')">⚙</button>
   </div>
   <div class="clue-card">
@@ -193,7 +189,7 @@ body {
     <div class="level-title">🎉 Tebrikler!</div>
     <div class="level-stars" id="levelStars">⭐⭐⭐</div>
     <div class="level-score" id="levelScore"></div>
-    <button class="next-btn" onclick="nextLevel()">Sonraki Bölüm →</button>
+    <button class="next-btn" onclick="nextLevel()">Sıradaki Kelimeler →</button>
   </div>
 </div>
 
@@ -775,7 +771,7 @@ function solveWord(wi) {
   const sideGem = document.getElementById('sideGem_' + wi);
   if (sideGem) sideGem.classList.add('earned');
 
-  const phrases = ['MUHTEŞEM! 🏆','HARİKA! ✨','SÜPER! 🎯','MÜKEMMEL! 💫','AFERİN! 🌟'];
+  const phrases = ['MUHTEŞEM! 🏆','HARİKA! ✨','SÜPER! 🎯','MÜKEMMEL! 💫','BRAVİSSİMO! 🌟'];
   showFeedback(phrases[Math.floor(Math.random() * phrases.length)], '#7c3aed');
 
   gemCount += 10;
@@ -803,7 +799,6 @@ function updateClue() {
   const w = LEVELS[currentLevel].words[currentClueIdx];
   document.getElementById('clueText').textContent = w.clue;
   document.getElementById('clueIcon').textContent = w.icon;
-  document.getElementById('chapterBadge').textContent = 'Bölüm ' + LEVELS[currentLevel].chapter;
   renderLetterCircle();
 }
 
